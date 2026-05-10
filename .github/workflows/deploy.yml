@@ -1,4 +1,4 @@
-name: Deploy Odoo Clients to AWS
+name: Deploy Odoo Professional Architecture
 
 on:
   push:
@@ -18,14 +18,21 @@ jobs:
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
-            # 1. Limpieza de mantenimiento para evitar que el disco se llene
-            docker system prune -f
-            sudo journalctl --vacuum-time=1d
-            
-            # 2. Actualizar el código
+            # 1. Actualizar el repositorio de código
             cd ~/proyecto-odoo
             git pull origin main
-            
-            # 3. Levantar la Juguetería
-            cd clients/jugueteria
+
+            # 2. Actualizar Entorno de PRODUCCIÓN
+            echo "Desplegando en Producción..."
+            cd ~/proyecto-odoo/environments/jugueteria/prod
             docker compose up -d --remove-orphans
+
+            # 3. Actualizar Entorno de STAGING (Pruebas)
+            echo "Desplegando en Staging..."
+            cd ~/proyecto-odoo/environments/jugueteria/staging
+            docker compose up -d --remove-orphans
+
+            # 4. Limpieza de mantenimiento (Para cuidar tus 20GB de disco)
+            echo "Iniciando limpieza de mantenimiento..."
+            docker system prune -f
+            sudo journalctl --vacuum-time=1d

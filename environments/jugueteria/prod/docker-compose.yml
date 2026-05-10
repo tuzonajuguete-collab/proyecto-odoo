@@ -1,0 +1,35 @@
+services:
+  odoo_prod: # <--- CAMBIO: Nombre del servicio único
+    image: odoo:18.0
+    container_name: odoo_juguete_prod # <--- CAMBIO: Nombre del contenedor único
+    depends_on:
+      - db_prod
+    networks:
+      - proxy-network
+    volumes:
+      # Ajuste de rutas relativas para subir un nivel más
+      - ../../../custom-addons:/mnt/custom-addons # <--- ¡IMPORTANTE! Ahora sube 3 niveles
+      - ./config:/etc/odoo
+      - ./data:/var/lib/odoo
+    labels:
+      - "traefik.enable=true"
+      # Usamos la URL principal del cliente
+      - "traefik.http.routers.juguete-prod.rule=Host(`jugueteria.32.194.128.10.nip.io`)" # <--- CAMBIO: Router único
+      - "traefik.http.routers.juguete-prod.entrypoints=websecure"
+      - "traefik.http.routers.juguete-prod.tls.certresolver=myresolver"
+
+  db_prod: # <--- CAMBIO: Nombre del servicio único
+    image: postgres:15
+    container_name: db_juguete_prod # <--- CAMBIO: Nombre del contenedor único
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=odoo # <--- RECOMENDACIÓN: Cambia esto por seguridad
+      - POSTGRES_USER=odoo
+    networks:
+      - proxy-network
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+
+networks:
+  proxy-network:
+    external: true

@@ -1,0 +1,35 @@
+services:
+  odoo_test: # <--- CAMBIO: Nombre del servicio único
+    image: odoo:18.0
+    container_name: odoo_juguete_test # <--- CAMBIO: Nombre del contenedor único
+    depends_on:
+      - db_test
+    networks:
+      - proxy-network
+    volumes:
+      # Apuntan a la MISMA carpeta de custom-addons que producción
+      - ../../../custom-addons:/mnt/custom-addons
+      - ./config:/etc/odoo
+      - ./data:/var/lib/odoo
+    labels:
+      - "traefik.enable=true"
+      # Usamos una URL distinta (añadimos 'test-')
+      - "traefik.http.routers.juguete-test.rule=Host(`test-jugueteria.32.194.128.10.nip.io`)" # <--- CAMBIO: Router único y URL de test
+      - "traefik.http.routers.juguete-test.entrypoints=websecure"
+      - "traefik.http.routers.juguete-test.tls.certresolver=myresolver"
+
+  db_test: # <--- CAMBIO: Nombre del servicio único
+    image: postgres:15
+    container_name: db_juguete_test # <--- CAMBIO: Nombre del contenedor único
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=odoo # <--- Usa la misma contraseña que en prod para facilitar la clonación
+      - POSTGRES_USER=odoo
+    networks:
+      - proxy-network
+    volumes:
+      - ./db_data:/var/lib/postgresql/data # <--- Esta carpeta será una copia de la de prod
+
+networks:
+  proxy-network:
+    external: true
