@@ -13,7 +13,6 @@ services:
       - ./data:/var/lib/odoo
     labels:
       - "traefik.enable=true"
-      # Usamos nip.io para tener SSL (candadito) sin pagar dominio aún
       - "traefik.http.routers.juguete.rule=Host(`jugueteria.32.194.128.10.nip.io`)"
       - "traefik.http.routers.juguete.entrypoints=websecure"
       - "traefik.http.routers.juguete.tls.certresolver=myresolver"

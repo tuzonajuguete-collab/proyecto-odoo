@@ -18,8 +18,14 @@ jobs:
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
+            # 1. Limpieza de mantenimiento para evitar que el disco se llene
+            docker system prune -f
+            sudo journalctl --vacuum-time=1d
+            
+            # 2. Actualizar el código
             cd ~/proyecto-odoo
             git pull origin main
-            # Entrar a la juguetería y refrescar si hay cambios en el docker-compose
+            
+            # 3. Levantar la Juguetería
             cd clients/jugueteria
-            docker compose up -d
+            docker compose up -d --remove-orphans
