@@ -1,6 +1,9 @@
 services:
   odoo_prod: # <--- CAMBIO: Nombre del servicio único
     image: odoo:18.0
+    # ...
+    # Solo -u base para que reconozca módulos nuevos al desplegar, pero sin modo dev activo
+    command: odoo -u base
     container_name: odoo_juguete_prod # <--- CAMBIO: Nombre del contenedor único
     depends_on:
       - db_prod

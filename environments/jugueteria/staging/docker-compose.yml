@@ -1,6 +1,10 @@
 services:
   odoo_test: # <--- CAMBIO: Nombre del servicio único
     image: odoo:18.0
+    # ...
+    # El parámetro --dev=all hace que NO necesites reiniciar para ver cambios en XML/CSS
+    # El parámetro -u base registra automáticamente cualquier carpeta nueva en custom-addons
+    command: odoo --dev=all -u base
     container_name: odoo_juguete_test # <--- CAMBIO: Nombre del contenedor único
     depends_on:
       - db_test
