@@ -2,7 +2,7 @@ name: Deploy Odoo Professional Architecture
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 jobs:
   deploy:
@@ -18,21 +18,29 @@ jobs:
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
-            # 1. Actualizar el repositorio de código
+            # 1. Preparación y Git
             cd ~/proyecto-odoo
-            git pull origin main
+            git fetch origin
+            
+            if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+              echo "🚀 DESPLEGANDO EN PRODUCCIÓN"
+              git checkout main
+              git pull origin main
+              cd environments/jugueteria/prod
+            elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+              echo "🧪 DESPLEGANDO EN STAGING"
+              git checkout develop
+              git pull origin develop
+              cd environments/jugueteria/staging
+            fi
 
-            # 2. Actualizar Entorno de PRODUCCIÓN
-            echo "Desplegando en Producción..."
-            cd ~/proyecto-odoo/environments/jugueteria/prod
+            # 2. Ejecución de Docker
+            echo "📦 Actualizando contenedores..."
             docker compose up -d --remove-orphans
-
-            # 3. Actualizar Entorno de STAGING (Pruebas)
-            echo "Desplegando en Staging..."
-            cd ~/proyecto-odoo/environments/jugueteria/staging
-            docker compose up -d --remove-orphans
-
-            # 4. Limpieza de mantenimiento (Para cuidar tus 20GB de disco)
-            echo "Iniciando limpieza de mantenimiento..."
+            
+            # 3. Mantenimiento
+            echo "🧹 Ejecutando limpieza de sistema..."
             docker system prune -f
             sudo journalctl --vacuum-time=1d
+            
+            echo "✅ ¡Proceso completado!"
