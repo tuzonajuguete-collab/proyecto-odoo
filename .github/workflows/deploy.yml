@@ -35,8 +35,9 @@ jobs:
             fi
 
             # 2. Ejecución de Docker
-            echo "📦 Actualizando contenedores..."
-            docker compose up -d --remove-orphans
+            echo "📦 Actualizando contenedores y forzando reinicio para actualizar módulos..."
+            # Usamos --force-recreate para asegurar que el comando 'odoo -u base' se ejecute
+            docker compose up -d --force-recreate --remove-orphans
             
             # 3. Mantenimiento
             echo "🧹 Ejecutando limpieza de sistema..."
