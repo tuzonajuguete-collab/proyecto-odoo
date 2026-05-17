@@ -20,6 +20,12 @@ jobs:
           script: |
             # 1. Preparación y Git
             cd ~/proyecto-odoo
+            
+            # 🔥 MEJORA GIT: Forzar la limpieza local para destruir cambios accidentales en la consola del servidor
+            echo "🧹 Borrando cualquier cambio local en el servidor para evitar bloqueos..."
+            git reset --hard HEAD
+            git clean -fd
+            
             git fetch origin
             
             if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
@@ -27,16 +33,28 @@ jobs:
               git checkout main
               git pull origin main
               cd environments/jugueteria/prod
+              
+              # 🔥 MEJORA DOCKER: Dar permisos y ejecutar el script inteligente de producción (calcula RAM y crea .env)
+              echo "🧠 Calculando hardware de producción..."
+              chmod +x up.sh
+              ./up.sh
+              
             elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
               echo "🧪 DESPLEGANDO EN STAGING"
               git checkout develop
               git pull origin develop
               cd environments/jugueteria/staging
+              
+              # 🔥 MEJORA DOCKER: Dar permisos y ejecutar el script inteligente de staging (calcula RAM reducida y crea .env)
+              echo "🧪 Calculando hardware de staging..."
+              chmod +x up_staging.sh
+              ./up_staging.sh
             fi
 
             # 2. Ejecución de Docker
             echo "📦 Actualizando contenedores y forzando reinicio para actualizar módulos..."
             # Usamos --force-recreate para asegurar que el comando 'odoo -u base' se ejecute
+            # 💡 NOTA: Al ejecutar arriba los scripts up.sh / up_staging.sh, este comando de abajo aplica los cambios del .env y fuerza la recreación limpia.
             docker compose up -d --force-recreate --remove-orphans
             
             # 3. Mantenimiento
