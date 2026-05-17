@@ -1,3 +1,4 @@
+version: '3.8'
 services:
   odoo_test: # <--- CAMBIO: Nombre del servicio único
     image: odoo:18.0
@@ -21,6 +22,10 @@ services:
       - "traefik.http.routers.juguete-test.rule=Host(`test-jugueteria.32.194.128.10.nip.io`)" # <--- CAMBIO: Router único y URL de test
       - "traefik.http.routers.juguete-test.entrypoints=websecure"
       - "traefik.http.routers.juguete-test.tls.certresolver=myresolver"
+    deploy: # <--- OPTIMIZACIÓN: Controla el consumo del modo dev en el GB de RAM
+      resources:
+        limits:
+          memory: 512M
 
   db_test: # <--- CAMBIO: Nombre del servicio único
     image: postgres:15
@@ -33,6 +38,10 @@ services:
       - proxy-network
     volumes:
       - ./db_data:/var/lib/postgresql/data # <--- Esta carpeta será una copia de la de prod
+    deploy: # <--- OPTIMIZACIÓN: Protege la base de datos de test
+      resources:
+        limits:
+          memory: 256M
 
 networks:
   proxy-network:

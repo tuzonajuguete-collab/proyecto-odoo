@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   odoo_prod: # <--- CAMBIO: Nombre del servicio único
     image: odoo:18.0
@@ -5,6 +7,8 @@ services:
     # Solo -u base para que reconozca módulos nuevos al desplegar, pero sin modo dev activo
     command: odoo -u base
     container_name: odoo_juguete_prod # <--- CAMBIO: Nombre del contenedor único
+    # 🔥 MEJORA 1: Si el contenedor se traba o se apaga, Docker lo revive de inmediato
+    restart: unless-stopped
     depends_on:
       - db_prod
     networks:
@@ -20,10 +24,18 @@ services:
       - "traefik.http.routers.juguete-prod.rule=Host(`jugueteria.32.194.128.10.nip.io`)" # <--- CAMBIO: Router único
       - "traefik.http.routers.juguete-prod.entrypoints=websecure"
       - "traefik.http.routers.juguete-prod.tls.certresolver=myresolver"
+    deploy: # <--- OPTIMIZACIÓN: Evita que Odoo sature el GB de RAM del servidor
+      resources:
+        limits:
+          # 🔥 MEJORA 2: Ya no es un número fijo. Leerá lo que calcule el script up.sh
+          memory: ${ODOO_MEM_LIMIT}
+          # Tamaño fijo      memory: 512M
 
   db_prod: # <--- CAMBIO: Nombre del servicio único
     image: postgres:15
     container_name: db_juguete_prod # <--- CAMBIO: Nombre del contenedor único
+    # 🔥 MEJORA 1: Protege la base de datos para que siempre esté encendida
+    restart: unless-stopped
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_PASSWORD=odoo # <--- RECOMENDACIÓN: Cambia esto por seguridad
@@ -32,6 +44,12 @@ services:
       - proxy-network
     volumes:
       - ./db_data:/var/lib/postgresql/data
+    deploy: # <--- OPTIMIZACIÓN: Reserva espacio para que Postgres respire en los backups
+      resources:
+        limits:
+        # 🔥 MEJORA 2: PostgreSQL también se adapta dinámicamente
+          memory: ${DB_MEM_LIMIT}
+        # TAMAÑO FIJO  memory: 256M
 
 networks:
   proxy-network:
