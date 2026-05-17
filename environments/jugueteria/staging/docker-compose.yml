@@ -7,6 +7,7 @@ services:
     # El parámetro -u base registra automáticamente cualquier carpeta nueva en custom-addons
     command: odoo --dev=all -u base
     container_name: odoo_juguete_test # <--- CAMBIO: Nombre del contenedor único
+    restart: unless-stopped # <-- Mantiene el entorno vivo si falla una prueba
     depends_on:
       - db_test
     networks:
@@ -25,11 +26,13 @@ services:
     deploy: # <--- OPTIMIZACIÓN: Controla el consumo del modo dev en el GB de RAM
       resources:
         limits:
-          memory: 512M
+          memory: ${ODOO_STG_LIMIT} # <-- Variable exclusiva de Staging
+          # FIJO  memory: 512M
 
   db_test: # <--- CAMBIO: Nombre del servicio único
     image: postgres:15
     container_name: db_juguete_test # <--- CAMBIO: Nombre del contenedor único
+    restart: unless-stopped
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_PASSWORD=odoo # <--- Usa la misma contraseña que en prod para facilitar la clonación
@@ -41,7 +44,8 @@ services:
     deploy: # <--- OPTIMIZACIÓN: Protege la base de datos de test
       resources:
         limits:
-          memory: 256M
+          #FIJO    memory: 256M
+          memory: ${DB_STG_LIMIT} # <-- Variable exclusiva de Staging
 
 networks:
   proxy-network:
