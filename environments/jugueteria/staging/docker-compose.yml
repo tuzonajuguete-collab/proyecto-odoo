@@ -20,7 +20,7 @@ services:
     labels:
       - "traefik.enable=true"
       # Usamos una URL distinta (añadimos 'test-')
-      - "traefik.http.routers.juguete-test.rule=Host(`test-jugueteria.32.194.128.10.nip.io`)" # <--- CAMBIO: Router único y URL de test
+      - "traefik.http.routers.juguete-test.rule=Host(`test-jugueteria.98.86.139.45.nip.io`)" # <--- CAMBIO: Router único y URL de test
       - "traefik.http.routers.juguete-test.entrypoints=websecure"
       - "traefik.http.routers.juguete-test.tls.certresolver=myresolver"
     deploy: # <--- OPTIMIZACIÓN: Controla el consumo del modo dev en el GB de RAM

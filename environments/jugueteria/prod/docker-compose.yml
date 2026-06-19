@@ -21,7 +21,7 @@ services:
     labels:
       - "traefik.enable=true"
       # Usamos la URL principal del cliente
-      - "traefik.http.routers.juguete-prod.rule=Host(`jugueteria.32.194.128.10.nip.io`)" # <--- CAMBIO: Router único
+      - "traefik.http.routers.juguete-prod.rule=Host(`jugueteria.98.86.139.45.nip.io`)" # <--- CAMBIO: Router único
       - "traefik.http.routers.juguete-prod.entrypoints=websecure"
       - "traefik.http.routers.juguete-prod.tls.certresolver=myresolver"
     deploy: # <--- OPTIMIZACIÓN: Evita que Odoo sature el GB de RAM del servidor
