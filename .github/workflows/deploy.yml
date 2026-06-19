@@ -18,6 +18,11 @@ jobs:
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
+            # Asegurar que el directorio base exista, si no, clonar por primera vez
+            if [ ! -d "~/proyecto-odoo" ]; then
+              echo "📦 Servidor nuevo detectado. Clonando repositorio por primera vez..."
+              git clone https://github.com/tu-usuario/proyecto-odoo.git ~/proyecto-odoo
+            fi
             # 1. Preparación y Git
             cd ~/proyecto-odoo
             
