@@ -22,27 +22,31 @@ jobs:
           username: ubuntu
           key: ${{ secrets.AWS_SSH_KEY_PROD }}    # 🔑 Contenido de cli-jug-almey-prod.pem
           script: |
-            # 1. Validar si la carpeta existe. Si no, clonar el repositorio limpio de inmediato
-            if [ ! -d "/home/ubuntu/proyecto-odoo" ]; then
-              echo "📦 Servidor nuevo detectado. Clonando repositorio por primera vez desde GitHub..."
-              git clone https://github.com/${{ github.repository }}.git /home/ubuntu/proyecto-odoo
-            fi
-
-            # 🛠️ PASO CRÍTICO: Entrar al repositorio ANTES de cualquier comando Git
+            # 1. Asegurar que el directorio base exista sin condicionales problemáticos
+            mkdir -p /home/ubuntu/proyecto-odoo
             cd /home/ubuntu/proyecto-odoo || exit 1
+
+            # 2. Inicializar o clonar si la carpeta está vacía (no tiene .git)
+            if [ ! -d ".git" ]; then
+              echo "📦 Repositorio no detectado. Clonando desde cero..."
+              cd ..
+              rm -rf proyecto-odoo
+              git clone https://github.com/${{ github.repository }}.git proyecto-odoo
+              cd proyecto-odoo || exit 1
+            fi
             
             echo "🧹 Limpiando cualquier cambio local residual dentro del repositorio..."
             git reset --hard HEAD
             git clean -fd
             
             echo "🔄 Sincronizando el árbol de ramas con el origen de GitHub..."
-            git fetch origin
+            git fetch origin --tags
 
             TARGET_BRANCH="${{ github.ref_name }}"
             echo "La rama detectada en el push de GitHub es: $TARGET_BRANCH"
 
             echo "🚀 Cambiando a la rama main y actualizando código..."
-            git checkout main
+            git checkout -f main
             git pull origin main
             
             # 📂 Moverse a la subcarpeta real de producción donde está tu up.sh
@@ -58,8 +62,6 @@ jobs:
             # 3. Mantenimiento rutinario de la VM
             echo "🧹 Ejecutando limpieza preventiva de imágenes y volúmenes Docker colgados..."
             docker system prune -f
-            
-            echo "🪵 Compactando registros del sistema operativo para liberar espacio en AWS..."
             sudo journalctl --vacuum-time=1d
             
             echo "✅ ¡Proceso de Producción completamente automatizado con éxito!"
@@ -75,27 +77,31 @@ jobs:
           username: ubuntu
           key: ${{ secrets.AWS_SSH_KEY_STAGE || 'temporal' }}    # 🔑 Si no existe el secret, usa texto temporal
           script: |
-            # 1. Validar si la carpeta existe. Si no, clonar el repositorio limpio de inmediato
-            if [ ! -d "/home/ubuntu/proyecto-odoo" ]; then
-              echo "📦 Servidor de Pruebas nuevo detectado. Clonando repositorio por primera vez..."
-              git clone https://github.com/${{ github.repository }}.git /home/ubuntu/proyecto-odoo
-            fi
-
-            # 🛠️ PASO CRÍTICO: Entrar al repositorio ANTES de cualquier comando Git
+            # 1. Asegurar que el directorio base exista
+            mkdir -p /home/ubuntu/proyecto-odoo
             cd /home/ubuntu/proyecto-odoo || exit 1
+
+            # 2. Inicializar o clonar si la carpeta está vacía
+            if [ ! -d ".git" ]; then
+              echo "📦 Repositorio de Pruebas no detectado. Clonando desde cero..."
+              cd ..
+              rm -rf proyecto-odoo
+              git clone https://github.com/${{ github.repository }}.git proyecto-odoo
+              cd proyecto-odoo || exit 1
+            fi
             
             echo "🧹 Limpiando cualquier cambio local residual dentro del repositorio..."
             git reset --hard HEAD
             git clean -fd
             
             echo "🔄 Sincronizando metadatos desde GitHub..."
-            git fetch origin
+            git fetch origin --tags
 
             TARGET_BRANCH="${{ github.ref_name }}"
             echo "La rama detectada en el push de GitHub es: $TARGET_BRANCH"
 
             echo "🧪 Cambiando a la rama develop y actualizando código..."
-            git checkout develop
+            git checkout -f develop
             git pull origin develop
             
             # 📂 Moverse a la subcarpeta real de staging donde está tu up_staging.sh
