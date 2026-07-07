@@ -11,60 +11,104 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy to AWS via SSH
+      # =======================================================================
+      # 🚀 BLOQUE 1: DESPLEGANDO EN VM DE PRODUCCIÓN (Únicamente rama main)
+      # =======================================================================
+      - name: Deploy to Production VM via SSH
+        if: github.ref_name == 'main'
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.AWS_HOST }}
-          username: ${{ secrets.AWS_USER }}
-          key: ${{ secrets.AWS_SSH_KEY }}
+          host: ${{ secrets.AWS_HOST_PROD }}      # 🔑 Tu IP de producción actual
+          username: ubuntu
+          key: ${{ secrets.AWS_SSH_KEY_PROD }}    # 🔑 Contenido de cli-jug-almey-prod.pem
           script: |
-            # Asegurar que el directorio base exista, si no, clonar dinámicamente
+            # 1. Validar si el directorio base del proyecto existe en el home
             if [ ! -d "~/proyecto-odoo" ]; then
-              echo "📦 Servidor nuevo detectado. Clonando repositorio por primera vez..."
+              echo "📦 Servidor nuevo detectado. Clonando repositorio por primera vez desde GitHub..."
               git clone https://github.com/${{ github.repository }}.git ~/proyecto-odoo
             fi
 
             cd ~/proyecto-odoo
             
-            echo "🧹 Borrando cualquier cambio local en el servidor..."
+            echo "🧹 Borrando cualquier cambio local residual o conflicto en el servidor..."
             git reset --hard HEAD
             git clean -fd
+            
+            echo "🔄 Sincronizando el árbol de ramas con el origen de GitHub..."
             git fetch origin
 
-            # 🛠️ DETECCIÓN DE RAMA DESDE GITHUB ACTIONS
-            # Usamos la variable directa de GitHub para saber a qué rama se hizo el push
             TARGET_BRANCH="${{ github.ref_name }}"
-            echo "La rama detectada en el push es: $TARGET_BRANCH"
+            echo "La rama detectada en el push de GitHub es: $TARGET_BRANCH"
 
-            if [ "$TARGET_BRANCH" = "main" ]; then
-              echo "🚀 DESPLEGANDO EN PRODUCCIÓN (JUGUETERÍA ALMEY)"
-              git checkout main
-              git pull origin main
-              cd environments/jugueteria/prod
-              
-              echo "🧠 Calculando hardware de producción y levantando..."
-              chmod +x up.sh
-              ./up.sh
-              docker compose up -d --force-recreate --remove-orphans
+            echo "🚀 INICIANDO DESPLIEGUE EN VIVO: PRODUCCIÓN (JUGUETERÍA ALMEY)"
+            git checkout main
+            git pull origin main
+            
+            # 🛠️ CAMBIO: Moverse a la ruta real de Producción donde está tu up.sh
+            echo "📂 Cambiando al directorio de producción..."
+            cd environments/jugueteria/prod/
+            
+            # 🛠️ CAMBIO: Ejecutar tu script inteligente de hardware antes del docker compose
+            echo "🧠 Calculando hardware de producción y levantando..."
+            chmod +x up.sh
+            ./up.sh
+            docker compose up -d --force-recreate --remove-orphans
 
-            elif [ "$TARGET_BRANCH" = "develop" ]; then
-              echo "🧪 DESPLEGANDO EN STAGING"
-              git checkout develop
-              git pull origin develop
-              cd environments/jugueteria/staging
-              
-              echo "🧪 Calculando hardware de staging y levantando..."
-              chmod +x up_staging.sh
-              ./up_staging.sh
-              docker compose up -d --force-recreate --remove-orphans
-            else
-              echo "⚠️ Rama no configurada para despliegue automático automático."
-              exit 1
+            # 3. Mantenimiento rutinario de la VM
+            echo "🧹 Ejecutando limpieza preventiva de imágenes y volúmenes Docker colgados..."
+            docker system prune -f
+            
+            echo "🪵 Compactando registros del sistema operativo para liberar espacio en AWS..."
+            sudo journalctl --vacuum-time=1d
+            
+            echo "✅ ¡Proceso de Producción completamente automatizado con éxito!"
+
+      # =======================================================================
+      # 🧪 BLOQUE 2: DESPLEGANDO EN VM DE PRUEBAS (Únicamente rama develop)
+      # =======================================================================
+      - name: Deploy to Staging VM via SSH
+        if: github.ref_name == 'develop'
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.AWS_HOST_STAGE || '1.1.1.1' }}        # 🔑 Si no existe el secret, usa IP falsa temporal
+          username: ubuntu
+          key: ${{ secrets.AWS_SSH_KEY_STAGE || 'temporal' }}    # 🔑 Si no existe el secret, usa texto temporal
+          script: |
+            # 1. Validar si el directorio base del proyecto existe en el home de pruebas
+            if [ ! -d "~/proyecto-odoo" ]; then
+              echo "📦 Servidor de Pruebas nuevo detectado. Clonando repositorio por primera vez..."
+              git clone https://github.com/${{ github.repository }}.git ~/proyecto-odoo
             fi
 
-            # 3. Mantenimiento del Servidor
-            echo "🧹 Ejecutando limpieza de sistema..."
+            cd ~/proyecto-odoo
+            
+            echo "🧹 Borrando cambios locales en el entorno de pruebas para evitar colisiones..."
+            git reset --hard HEAD
+            git clean -fd
+            
+            echo "🔄 Sincronizando metadatos desde GitHub..."
+            git fetch origin
+
+            TARGET_BRANCH="${{ github.ref_name }}"
+            echo "La rama detectada en el push de GitHub es: $TARGET_BRANCH"
+
+            echo "🧪 INICIANDO DESPLIEGUE: ENTORNO DE PRUEBAS (STAGING)"
+            git checkout develop
+            git pull origin develop
+            
+            # 🛠️ CAMBIO: Moverse a la ruta real de Staging donde está tu up_staging.sh
+            echo "📂 Cambiando al directorio de staging..."
+            cd environments/jugueteria/staging/
+            
+            # 🛠️ CAMBIO: Ejecutar tu script inteligente de hardware para staging antes del docker compose
+            echo "🧪 Calculando hardware de staging y levantando..."
+            chmod +x up_staging.sh
+            ./up_staging.sh
+            docker compose up -d --force-recreate --remove-orphans
+
+            # 3. Mantenimiento del Servidor de Pruebas
+            echo "🧹 Ejecutando limpieza de sistema en la VM de Pruebas..."
             docker system prune -f
             sudo journalctl --vacuum-time=1d
             
-            echo "✅ ¡Proceso completamente automatizado con éxito!"
+            echo "✅ ¡Entorno de Pruebas actualizado con éxito!"
