@@ -22,16 +22,16 @@ jobs:
           username: ubuntu
           key: ${{ secrets.AWS_SSH_KEY_PROD }}    # 🔑 Contenido de cli-jug-almey-prod.pem
           script: |
-            # 1. Validar usando la variable global $HOME para evitar fallos de expansión
-            if [ ! -d "$HOME/proyecto-odoo" ]; then
+            # 1. Validar si la carpeta existe. Si no, clonar el repositorio limpio de inmediato
+            if [ ! -d "/home/ubuntu/proyecto-odoo" ]; then
               echo "📦 Servidor nuevo detectado. Clonando repositorio por primera vez desde GitHub..."
-              git clone https://github.com/${{ github.repository }}.git $HOME/proyecto-odoo
+              git clone https://github.com/${{ github.repository }}.git /home/ubuntu/proyecto-odoo
             fi
 
-            # En caso de que se haya quedado a medias, forzamos la entrada o detenemos el flujo
-            cd $HOME/proyecto-odoo || exit 1
+            # 🛠️ PASO CRÍTICO: Entrar al repositorio ANTES de cualquier comando Git
+            cd /home/ubuntu/proyecto-odoo || exit 1
             
-            echo "🧹 Borrando cualquier cambio local residual o conflicto en el servidor..."
+            echo "🧹 Limpiando cualquier cambio local residual dentro del repositorio..."
             git reset --hard HEAD
             git clean -fd
             
@@ -41,21 +41,21 @@ jobs:
             TARGET_BRANCH="${{ github.ref_name }}"
             echo "La rama detectada en el push de GitHub es: $TARGET_BRANCH"
 
-            echo "🚀 INICIANDO DESPLIEGUE EN VIVO: PRODUCCIÓN (JUGUETERÍA ALMEY)"
+            echo "🚀 Cambiando a la rama main y actualizando código..."
             git checkout main
             git pull origin main
             
-            # Moverse a la ruta real de Producción donde está tu up.sh
+            # 📂 Moverse a la subcarpeta real de producción donde está tu up.sh
             echo "📂 Cambiando al directorio de producción..."
             cd environments/jugueteria/prod/ || exit 1
             
-            # Ejecutar tu script inteligente de hardware antes del docker compose
+            # 🧠 Ejecutar tu script inteligente de hardware antes del docker compose
             echo "🧠 Calculando hardware de producción y levantando..."
             chmod +x up.sh
             ./up.sh
             docker compose up -d --force-recreate --remove-orphans
 
-            # 3. Mantenimiento rutinario de la VM para evitar saturación de disco
+            # 3. Mantenimiento rutinario de la VM
             echo "🧹 Ejecutando limpieza preventiva de imágenes y volúmenes Docker colgados..."
             docker system prune -f
             
@@ -75,15 +75,16 @@ jobs:
           username: ubuntu
           key: ${{ secrets.AWS_SSH_KEY_STAGE || 'temporal' }}    # 🔑 Si no existe el secret, usa texto temporal
           script: |
-            # 1. Validar usando la variable global $HOME
-            if [ ! -d "$HOME/proyecto-odoo" ]; then
+            # 1. Validar si la carpeta existe. Si no, clonar el repositorio limpio de inmediato
+            if [ ! -d "/home/ubuntu/proyecto-odoo" ]; then
               echo "📦 Servidor de Pruebas nuevo detectado. Clonando repositorio por primera vez..."
-              git clone https://github.com/${{ github.repository }}.git $HOME/proyecto-odoo
+              git clone https://github.com/${{ github.repository }}.git /home/ubuntu/proyecto-odoo
             fi
 
-            cd $HOME/proyecto-odoo || exit 1
+            # 🛠️ PASO CRÍTICO: Entrar al repositorio ANTES de cualquier comando Git
+            cd /home/ubuntu/proyecto-odoo || exit 1
             
-            echo "🧹 Borrando cambios locales en el entorno de pruebas para evitar colisiones..."
+            echo "🧹 Limpiando cualquier cambio local residual dentro del repositorio..."
             git reset --hard HEAD
             git clean -fd
             
@@ -93,15 +94,15 @@ jobs:
             TARGET_BRANCH="${{ github.ref_name }}"
             echo "La rama detectada en el push de GitHub es: $TARGET_BRANCH"
 
-            echo "🧪 INICIANDO DESPLIEGUE: ENTORNO DE PRUEBAS (STAGING)"
+            echo "🧪 Cambiando a la rama develop y actualizando código..."
             git checkout develop
             git pull origin develop
             
-            # Moverse a la ruta real de Staging donde está tu up_staging.sh
+            # 📂 Moverse a la subcarpeta real de staging donde está tu up_staging.sh
             echo "📂 Cambiando al directorio de staging..."
             cd environments/jugueteria/staging/ || exit 1
             
-            # Ejecutar tu script inteligente de hardware para staging antes del docker compose
+            # 🧪 Ejecutar tu script inteligente de hardware para staging antes del docker compose
             echo "🧪 Calculando hardware de staging y levantando..."
             chmod +x up_staging.sh
             ./up_staging.sh
