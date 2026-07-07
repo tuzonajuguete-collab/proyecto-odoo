@@ -22,13 +22,14 @@ jobs:
           username: ubuntu
           key: ${{ secrets.AWS_SSH_KEY_PROD }}    # 🔑 Contenido de cli-jug-almey-prod.pem
           script: |
-            # 1. Validar si el directorio base del proyecto existe en el home
-            if [ ! -d "~/proyecto-odoo" ]; then
+            # 1. Validar usando la variable global $HOME para evitar fallos de expansión
+            if [ ! -d "$HOME/proyecto-odoo" ]; then
               echo "📦 Servidor nuevo detectado. Clonando repositorio por primera vez desde GitHub..."
-              git clone https://github.com/${{ github.repository }}.git ~/proyecto-odoo
+              git clone https://github.com/${{ github.repository }}.git $HOME/proyecto-odoo
             fi
 
-            cd ~/proyecto-odoo
+            # En caso de que se haya quedado a medias, forzamos la entrada o detenemos el flujo
+            cd $HOME/proyecto-odoo || exit 1
             
             echo "🧹 Borrando cualquier cambio local residual o conflicto en el servidor..."
             git reset --hard HEAD
@@ -44,17 +45,17 @@ jobs:
             git checkout main
             git pull origin main
             
-            # 🛠️ CAMBIO: Moverse a la ruta real de Producción donde está tu up.sh
+            # Moverse a la ruta real de Producción donde está tu up.sh
             echo "📂 Cambiando al directorio de producción..."
-            cd environments/jugueteria/prod/
+            cd environments/jugueteria/prod/ || exit 1
             
-            # 🛠️ CAMBIO: Ejecutar tu script inteligente de hardware antes del docker compose
+            # Ejecutar tu script inteligente de hardware antes del docker compose
             echo "🧠 Calculando hardware de producción y levantando..."
             chmod +x up.sh
             ./up.sh
             docker compose up -d --force-recreate --remove-orphans
 
-            # 3. Mantenimiento rutinario de la VM
+            # 3. Mantenimiento rutinario de la VM para evitar saturación de disco
             echo "🧹 Ejecutando limpieza preventiva de imágenes y volúmenes Docker colgados..."
             docker system prune -f
             
@@ -74,13 +75,13 @@ jobs:
           username: ubuntu
           key: ${{ secrets.AWS_SSH_KEY_STAGE || 'temporal' }}    # 🔑 Si no existe el secret, usa texto temporal
           script: |
-            # 1. Validar si el directorio base del proyecto existe en el home de pruebas
-            if [ ! -d "~/proyecto-odoo" ]; then
+            # 1. Validar usando la variable global $HOME
+            if [ ! -d "$HOME/proyecto-odoo" ]; then
               echo "📦 Servidor de Pruebas nuevo detectado. Clonando repositorio por primera vez..."
-              git clone https://github.com/${{ github.repository }}.git ~/proyecto-odoo
+              git clone https://github.com/${{ github.repository }}.git $HOME/proyecto-odoo
             fi
 
-            cd ~/proyecto-odoo
+            cd $HOME/proyecto-odoo || exit 1
             
             echo "🧹 Borrando cambios locales en el entorno de pruebas para evitar colisiones..."
             git reset --hard HEAD
@@ -96,11 +97,11 @@ jobs:
             git checkout develop
             git pull origin develop
             
-            # 🛠️ CAMBIO: Moverse a la ruta real de Staging donde está tu up_staging.sh
+            # Moverse a la ruta real de Staging donde está tu up_staging.sh
             echo "📂 Cambiando al directorio de staging..."
-            cd environments/jugueteria/staging/
+            cd environments/jugueteria/staging/ || exit 1
             
-            # 🛠️ CAMBIO: Ejecutar tu script inteligente de hardware para staging antes del docker compose
+            # Ejecutar tu script inteligente de hardware para staging antes del docker compose
             echo "🧪 Calculando hardware de staging y levantando..."
             chmod +x up_staging.sh
             ./up_staging.sh
