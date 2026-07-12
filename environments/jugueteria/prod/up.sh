@@ -7,7 +7,8 @@ RAM_TOTAL=$(free -m | awk '/^Mem:/{print $2}')
 ODOO_CALCULATED=$((RAM_TOTAL * 50 / 100))
 DB_CALCULATED=$((RAM_TOTAL * 25 / 100))
 
-# 3. 📝 NUEVO: Guardar los valores directamente en el archivo .env de Docker
+# 3. 📝 SOLUCIÓN A CONFLICTOS DE CACHÉ: Limpiar .env antiguos antes de escribir los límites dinámicos
+rm -f .env
 echo "ODOO_MEM_LIMIT=${ODOO_CALCULATED}M" > .env
 echo "DB_MEM_LIMIT=${DB_CALCULATED}M" >> .env
 
